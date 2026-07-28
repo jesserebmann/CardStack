@@ -2,7 +2,11 @@
   'use strict';
   const B = Cardstack.barcode, SCAN = Cardstack.scanner, DRIVE = Cardstack.drive;
 
-  const LS_CARDS = 'cardstack.cards.v1';
+  const LS_CARDS = 'cardstack.cards.v1'; // legacy pre-accounts store, migrated on first sign-in
+  const ACCT_KEY = 'cardstack.currentAccount';
+  let account = null;
+  try { account = JSON.parse(localStorage.getItem(ACCT_KEY) || 'null'); } catch (e) { account = null; }
+  function cardsKey() { return account ? 'cardstack.cards.' + account.sub : LS_CARDS; }
   const SWATCHES = ['#2B6CB0','#1E88A8','#2C7A7B','#00838F','#2F855A','#3AA76D','#6B46C1','#8E44AD','#5C6BC0','#B83280','#D64592','#C53030','#C05621','#E0663A','#D69E2E','#7A4E2D','#4A5568','#455A64','#546E7A','#1A202C','#FFFFFF','#EDE6D8','#DCE6EF','#D7E8DE','#F3E1C6','#F3D9DE','#E4DAF0'];
   const VIEW_KEY = 'cardstack.view';
   const GRID_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
@@ -19,10 +23,10 @@
   /* ---------- storage ---------- */
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'c' + Date.now() + Math.random().toString(16).slice(2));
   function load() {
-    try { cards = JSON.parse(localStorage.getItem(LS_CARDS)) || []; }
+    try { cards = JSON.parse(localStorage.getItem(cardsKey())) || []; }
     catch (e) { cards = []; }
   }
-  function save() { localStorage.setItem(LS_CARDS, JSON.stringify(cards)); }
+  function save() { localStorage.setItem(cardsKey(), JSON.stringify(cards)); }
   const byId = (id) => cards.find((c) => c.id === id);
 
   /* ---------- helpers ---------- */
@@ -122,6 +126,63 @@
       || $('#editor').classList.contains('is-open')
       || $('#settings').classList.contains('is-open')
       || $('#detail').classList.contains('is-active');
+  }
+
+  /* ---------- accounts / sign-in ---------- */
+  function persistAccount() {
+    if (account) localStorage.setItem(ACCT_KEY, JSON.stringify(account));
+    else localStorage.removeItem(ACCT_KEY);
+  }
+  function showGate(show) {
+    const g = $('#gate');
+    g.classList.toggle('is-active', show);
+    g.setAttribute('aria-hidden', show ? 'false' : 'true');
+    $('#home').style.display = show ? 'none' : '';
+  }
+  async function doSignIn() {
+    const btn = $('#gate-signin');
+    if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
+    try {
+      const info = await DRIVE.signIn();
+      if (!info || !info.sub) throw new Error('Could not read your account.');
+      account = { sub: info.sub, email: info.email || '', name: info.name || '' };
+      persistAccount();
+      await adoptAccountData();
+      showGate(false);
+      applyView();
+      render($('#search').value);
+      toast('Signed in as ' + (account.email || account.name || 'your account'));
+    } catch (e) {
+      toast(e.message || 'Sign-in failed.');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Sign in with Google'; }
+    }
+  }
+  // After sign-in: load this account's cards. If none locally, pull the Drive
+  // backup; if there's no backup either, adopt any legacy (pre-accounts) cards.
+  async function adoptAccountData() {
+    load();
+    if (cards.length === 0) {
+      let pulled = null;
+      try { pulled = await DRIVE.restore(); } catch (e) {}
+      if (pulled && Array.isArray(pulled.cards) && pulled.cards.length) {
+        cards = pulled.cards; save();
+      } else {
+        let legacy = null;
+        try { legacy = JSON.parse(localStorage.getItem(LS_CARDS) || 'null'); } catch (e) {}
+        if (Array.isArray(legacy) && legacy.length) {
+          cards = legacy; save();
+          DRIVE.backup(payload()).catch(() => {});
+        }
+      }
+    }
+  }
+  function signOut() {
+    DRIVE.disconnect();
+    account = null; persistAccount();
+    cards = []; render();
+    closeSheet('#settings');
+    showGate(true);
   }
 
   /* ---------- editor sheet ---------- */
@@ -259,14 +320,13 @@
   function openSettings() { refreshDriveUI(); $('#f-clientid').value = DRIVE.clientId(); openSheet('#settings'); render(); }
   function refreshDriveUI() {
     const status = $('#drive-status');
-    const connected = DRIVE.isConnected();
-    if (!DRIVE.isConfigured()) status.textContent = 'Add your Google client ID below to enable Drive backup.';
-    else if (connected) status.textContent = 'Connected. Back up or restore your cards anytime.';
-    else status.textContent = 'Client ID saved. Tap Connect to sign in to Google.';
-    $('#drive-backup').disabled = !connected;
-    $('#drive-restore').disabled = !connected;
-    $('#drive-disconnect').hidden = !connected;
-    $('#drive-connect').textContent = connected ? 'Reconnect' : 'Connect Drive';
+    if (account) {
+      status.textContent = 'Signed in as ' + (account.email || account.name || 'your account') + '. Your cards are private to this account and backed up to its Google Drive.';
+    } else {
+      status.textContent = 'Not signed in.';
+    }
+    $('#drive-backup').disabled = false;
+    $('#drive-restore').disabled = false;
   }
   function payload() { return { app: 'cardstack', version: 1, exportedAt: new Date().toISOString(), cards }; }
   function applyPayload(data) {
@@ -339,10 +399,9 @@
         cards = cards.filter((c) => c.id !== currentId); save(); render($('#search').value); toast('Card deleted.'); maybeAutoBackup(); history.back();
       },
       'close-settings': () => history.back(),
-      'drive-connect': driveConnect,
+      'sign-out': signOut,
       'drive-backup': driveBackup,
       'drive-restore': driveRestore,
-      'drive-disconnect': () => { DRIVE.disconnect(); refreshDriveUI(); toast('Disconnected.'); },
       'save-clientid': () => { DRIVE.setClientId($('#f-clientid').value); refreshDriveUI(); toast('Client ID saved.'); },
       'export-file': exportFile,
       'import-file': importFile,
@@ -356,7 +415,9 @@
     document.addEventListener('click', actions);
     $('#btn-settings').addEventListener('click', openSettings);
     $('#btn-view').addEventListener('click', toggleView);
+    $('#gate-signin').addEventListener('click', doSignIn);
     applyView();
+    showGate(!account);
     $('#editor-form').addEventListener('submit', saveFromEditor);
     $('#f-name').addEventListener('input', () => {
       if (!domainTouched) $('#f-domain').value = slugDomain($('#f-name').value.trim());

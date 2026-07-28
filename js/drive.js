@@ -1,12 +1,11 @@
-/* Optional Google Drive backup.
-   Uses Google Identity Services for auth and the Drive REST API for a single
-   backup file. Scope is drive.file: the app can ONLY see files it creates,
-   and the backup is visible in your own Drive. Requires an OAuth client ID
-   (set in Settings). Everything runs client-side; no server, no secrets. */
+/* Google sign-in + Drive backup (per account).
+   Uses Google Identity Services for auth. Scope: email/profile (to identify
+   the signed-in account) + drive.file (backup file in THAT account's Drive,
+   visible only to the app). Everything runs client-side; no server, no secret. */
 window.Cardstack = window.Cardstack || {};
 
 Cardstack.drive = (function () {
-  const SCOPE = 'https://www.googleapis.com/auth/drive.file';
+  const SCOPE = 'email profile https://www.googleapis.com/auth/drive.file';
   const FILE_NAME = 'Cardstack Backup.json';
   const LS_CLIENT = 'cardstack.driveClientId';
 
@@ -14,16 +13,12 @@ Cardstack.drive = (function () {
   let accessToken = null;
   let tokenExpiry = 0;
 
-  // A client ID you can override in Settings. Left blank on purpose so each
-  // person uses their own Google Cloud project (see README).
-  const DEFAULT_CLIENT_ID = '';
+  // Public OAuth Web client ID for this app (not a secret; it's visible in the
+  // browser by design). Users can override it in Settings if they self-host.
+  const DEFAULT_CLIENT_ID = '379388336155-u8eel519tj59dqs3ibqh6ktfk2gj8gre.apps.googleusercontent.com';
 
-  function clientId() {
-    return localStorage.getItem(LS_CLIENT) || DEFAULT_CLIENT_ID;
-  }
-  function setClientId(id) {
-    localStorage.setItem(LS_CLIENT, (id || '').trim());
-  }
+  function clientId() { return localStorage.getItem(LS_CLIENT) || DEFAULT_CLIENT_ID; }
+  function setClientId(id) { localStorage.setItem(LS_CLIENT, (id || '').trim()); }
   function isConfigured() { return !!clientId(); }
   function isConnected() { return !!accessToken && Date.now() < tokenExpiry; }
 
@@ -31,12 +26,12 @@ Cardstack.drive = (function () {
     if (!window.google || !google.accounts || !google.accounts.oauth2) {
       throw new Error('Google sign-in is still loading. Check your connection and try again.');
     }
-    if (!clientId()) throw new Error('Add your Google client ID in Settings first.');
+    if (!clientId()) throw new Error('No Google client ID configured.');
     if (!tokenClient) {
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: clientId(),
         scope: SCOPE,
-        callback: () => {}, // replaced per-request
+        callback: () => {},
       });
     }
   }
@@ -60,6 +55,21 @@ Cardstack.drive = (function () {
       try { google.accounts.oauth2.revoke(accessToken, () => {}); } catch (e) {}
     }
     accessToken = null; tokenExpiry = 0;
+  }
+
+  async function userInfo() {
+    const token = await getToken(false).catch(() => getToken(true));
+    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    if (!res.ok) throw new Error('Could not read account info (' + res.status + ')');
+    return res.json(); // { sub, email, name, picture, ... }
+  }
+
+  // Interactive sign-in: get a token (consent) and return the account identity.
+  async function signIn() {
+    await getToken(true);
+    return userInfo();
   }
 
   async function api(url, opts) {
@@ -113,5 +123,5 @@ Cardstack.drive = (function () {
     return res.json();
   }
 
-  return { isConfigured, isConnected, setClientId, clientId, getToken, disconnect, backup, restore };
+  return { isConfigured, isConnected, setClientId, clientId, getToken, disconnect, signIn, userInfo, backup, restore };
 })();

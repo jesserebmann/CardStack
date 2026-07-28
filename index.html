@@ -21,6 +21,17 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
+  <!-- ===== SIGN-IN GATE ===== -->
+  <section id="gate" class="gate" aria-hidden="true">
+    <div class="gate-inner">
+      <span class="clasp gate-clasp" aria-hidden="true"></span>
+      <h1>Cardstack</h1>
+      <p>Sign in with your Google account to see and manage your own cards. They're private to your account and backed up to your Google Drive.</p>
+      <button id="gate-signin" class="btn-primary gate-btn">Sign in with Google</button>
+      <p class="gate-note">Each account has its own cards — you only ever see your own.</p>
+    </div>
+  </section>
+
   <!-- ===== HOME ===== -->
   <main id="home" class="screen is-active">
     <header class="topbar">
@@ -171,17 +182,16 @@
     </div>
     <div class="sheet-body">
       <div class="group">
-        <h3 class="group-title">Google Drive backup</h3>
-        <p id="drive-status" class="group-note">Not connected. Your cards are saved on this device only.</p>
+        <h3 class="group-title">Account</h3>
+        <p id="drive-status" class="group-note">Signed in.</p>
         <div class="btn-row">
-          <button id="drive-connect" class="btn-secondary" data-action="drive-connect">Connect Drive</button>
-          <button id="drive-backup" class="btn-secondary" data-action="drive-backup" disabled>Back up now</button>
-          <button id="drive-restore" class="btn-secondary" data-action="drive-restore" disabled>Restore</button>
-          <button id="drive-disconnect" class="btn-ghost" data-action="drive-disconnect" hidden>Disconnect</button>
+          <button id="drive-backup" class="btn-secondary" data-action="drive-backup">Back up now</button>
+          <button id="drive-restore" class="btn-secondary" data-action="drive-restore">Restore</button>
+          <button id="btn-signout" class="btn-ghost" data-action="sign-out">Sign out</button>
         </div>
         <details class="advanced">
-          <summary>Set up your own Google client ID</summary>
-          <p class="group-note">Paste the OAuth client ID from your Google Cloud project (see the README). It stays on this device.</p>
+          <summary>Advanced: use your own Google client ID</summary>
+          <p class="group-note">Optional — overrides the built-in client ID (for self-hosting). Stays on this device.</p>
           <input id="f-clientid" type="text" placeholder="xxxxxxxx.apps.googleusercontent.com" autocomplete="off" />
           <button class="btn-secondary" data-action="save-clientid">Save client ID</button>
         </details>
