@@ -1,0 +1,7 @@
+﻿android/
+node_modules/
+*.keystore
+*.jks
+*.apk
+*.aab
+_*.ps1

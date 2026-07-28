@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#17130F" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Cardstack" />
+  <meta name="description" content="Your loyalty cards, ready at the counter." />
+  <title>Cardstack</title>
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <link rel="icon" href="icons/icon-192.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- ===== HOME ===== -->
+  <main id="home" class="screen is-active">
+    <header class="topbar">
+      <div class="brand">
+        <span class="clasp" aria-hidden="true"></span>
+        <h1>Cardstack</h1>
+      </div>
+      <button id="btn-settings" class="icon-btn" aria-label="Settings">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </header>
+
+    <div class="search-wrap">
+      <svg class="search-ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="search" type="search" inputmode="search" placeholder="Search cards" autocomplete="off" />
+    </div>
+
+    <section id="card-grid" class="card-grid" aria-live="polite"></section>
+
+    <div id="empty" class="empty" hidden>
+      <div class="empty-art" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+      <h2>No cards yet</h2>
+      <p>Add your first loyalty card. Scan the barcode on the back, or type the number.</p>
+      <button class="btn-primary" data-action="add">Add a card</button>
+    </div>
+
+    <button id="fab" class="fab" aria-label="Add a card" data-action="add">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </main>
+
+  <!-- ===== CARD DETAIL (present mode) ===== -->
+  <section id="detail" class="screen detail" aria-hidden="true">
+    <button class="detail-close" data-action="close-detail" aria-label="Close">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <div class="detail-inner">
+      <h2 id="detail-name" class="detail-name"></h2>
+      <div id="barcode-panel" class="barcode-panel">
+        <div id="barcode-holder"></div>
+        <div id="detail-number" class="detail-number"></div>
+      </div>
+      <p class="present-hint">Hold your phone up to the scanner. We'll keep the screen awake while it's open — turn your brightness up if the counter can't read it.</p>
+      <div class="detail-actions">
+        <button class="pill" data-action="edit-current">Edit</button>
+        <button class="pill pill-danger" data-action="delete-current">Delete</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ADD / EDIT SHEET ===== -->
+  <div id="sheet-backdrop" class="backdrop" hidden></div>
+  <section id="editor" class="sheet" aria-hidden="true" aria-labelledby="editor-title">
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <div class="sheet-head">
+      <h2 id="editor-title">Add card</h2>
+      <button class="icon-btn" data-action="close-editor" aria-label="Cancel">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <form id="editor-form" class="sheet-body">
+      <label class="field">
+        <span class="field-label">Store name</span>
+        <input id="f-name" type="text" required placeholder="e.g. Delhaize, IKEA Family" autocomplete="off" />
+      </label>
+
+      <div class="field">
+        <span class="field-label">Card number</span>
+        <div class="number-row">
+          <input id="f-number" type="text" required placeholder="Scan or type the number" autocomplete="off" inputmode="text" />
+          <button type="button" class="scan-btn" data-action="scan">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10" stroke-width="2"/></svg>
+            Scan
+          </button>
+        </div>
+      </div>
+
+      <label class="field">
+        <span class="field-label">Barcode type</span>
+        <div class="select-wrap">
+          <select id="f-format">
+            <option value="CODE128">Auto / Code 128 (most cards)</option>
+            <option value="QR">QR code</option>
+            <option value="EAN13">EAN-13</option>
+            <option value="EAN8">EAN-8</option>
+            <option value="UPC">UPC-A</option>
+            <option value="CODE39">Code 39</option>
+            <option value="ITF">ITF</option>
+          </select>
+          <svg class="select-caret" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+        <span id="format-warn" class="field-hint" hidden></span>
+      </label>
+
+      <div class="field">
+        <span class="field-label">Card colour</span>
+        <div id="swatches" class="swatches"></div>
+      </div>
+
+      <div id="preview-wrap" class="preview-wrap" hidden>
+        <span class="field-label">Preview</span>
+        <div id="card-preview" class="card-preview"></div>
+      </div>
+
+      <div class="sheet-foot">
+        <button type="submit" class="btn-primary">Save card</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ===== SCANNER ===== -->
+  <section id="scanner" class="screen scanner" aria-hidden="true">
+    <div class="scanner-head">
+      <span>Point at the barcode</span>
+      <button class="icon-btn" data-action="close-scanner" aria-label="Cancel scan">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="reader" class="reader"></div>
+    <div class="scanner-frame" aria-hidden="true"></div>
+    <p id="scanner-msg" class="scanner-msg"></p>
+  </section>
+
+  <!-- ===== SETTINGS ===== -->
+  <section id="settings" class="sheet" aria-hidden="true" aria-labelledby="settings-title">
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <div class="sheet-head">
+      <h2 id="settings-title">Settings</h2>
+      <button class="icon-btn" data-action="close-settings" aria-label="Close settings">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="sheet-body">
+      <div class="group">
+        <h3 class="group-title">Google Drive backup</h3>
+        <p id="drive-status" class="group-note">Not connected. Your cards are saved on this device only.</p>
+        <div class="btn-row">
+          <button id="drive-connect" class="btn-secondary" data-action="drive-connect">Connect Drive</button>
+          <button id="drive-backup" class="btn-secondary" data-action="drive-backup" disabled>Back up now</button>
+          <button id="drive-restore" class="btn-secondary" data-action="drive-restore" disabled>Restore</button>
+          <button id="drive-disconnect" class="btn-ghost" data-action="drive-disconnect" hidden>Disconnect</button>
+        </div>
+        <details class="advanced">
+          <summary>Set up your own Google client ID</summary>
+          <p class="group-note">Paste the OAuth client ID from your Google Cloud project (see the README). It stays on this device.</p>
+          <input id="f-clientid" type="text" placeholder="xxxxxxxx.apps.googleusercontent.com" autocomplete="off" />
+          <button class="btn-secondary" data-action="save-clientid">Save client ID</button>
+        </details>
+      </div>
+
+      <div class="group">
+        <h3 class="group-title">File backup</h3>
+        <p class="group-note">Download a backup file you can drop into Drive, or restore from one. No setup needed.</p>
+        <div class="btn-row">
+          <button class="btn-secondary" data-action="export-file">Export backup</button>
+          <button class="btn-secondary" data-action="import-file">Import backup</button>
+        </div>
+        <input id="import-input" type="file" accept="application/json,.json" hidden />
+      </div>
+
+      <div class="group">
+        <h3 class="group-title">About</h3>
+        <p class="group-note">Cardstack keeps your loyalty cards on your device and shows their barcodes at the counter. <span id="count-note"></span></p>
+      </div>
+    </div>
+  </section>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- libraries (local, work offline) -->
+  <script src="lib/JsBarcode.all.min.js"></script>
+  <script src="lib/qrcode-generator.js"></script>
+  <script src="lib/html5-qrcode.min.js"></script>
+
+  <!-- google identity services (only used if you connect Drive) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <script src="js/barcode.js"></script>
+  <script src="js/drive.js"></script>
+  <script src="js/scanner.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+  </script>
+</body>
+</html>
