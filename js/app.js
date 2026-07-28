@@ -3,7 +3,10 @@
   const B = Cardstack.barcode, SCAN = Cardstack.scanner, DRIVE = Cardstack.drive;
 
   const LS_CARDS = 'cardstack.cards.v1';
-  const SWATCHES = ['#2B6CB0','#C05621','#2F855A','#6B46C1','#B83280','#C53030','#2C7A7B','#4A5568','#D69E2E','#1A202C'];
+  const SWATCHES = ['#2B6CB0','#1E88A8','#2C7A7B','#00838F','#2F855A','#3AA76D','#6B46C1','#8E44AD','#5C6BC0','#B83280','#D64592','#C53030','#C05621','#E0663A','#D69E2E','#7A4E2D','#4A5568','#455A64','#546E7A','#1A202C'];
+  const VIEW_KEY = 'cardstack.view';
+  const GRID_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
+  const LIST_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>';
 
   let cards = [];
   let editingId = null;
@@ -11,6 +14,7 @@
   let draftColor = SWATCHES[0];
   let wakeLock = null;
   let domainTouched = false;
+  let viewMode = localStorage.getItem(VIEW_KEY) || 'list';
 
   /* ---------- storage ---------- */
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'c' + Date.now() + Math.random().toString(16).slice(2));
@@ -85,6 +89,22 @@
     return domain
       ? '<span class="c-logo"><img src="' + iconUrl(domain) + '" alt="" loading="lazy" onerror="this.parentNode.style.display=\'none\'"></span>'
       : '';
+  }
+
+  /* ---------- list / grid view ---------- */
+  function applyView() {
+    const grid = $('#card-grid');
+    if (grid) grid.classList.toggle('grid', viewMode === 'grid');
+    const btn = $('#btn-view');
+    if (btn) {
+      btn.innerHTML = viewMode === 'grid' ? LIST_ICON : GRID_ICON;
+      btn.setAttribute('aria-label', viewMode === 'grid' ? 'Switch to list view' : 'Switch to grid view');
+    }
+  }
+  function toggleView() {
+    viewMode = viewMode === 'grid' ? 'list' : 'grid';
+    localStorage.setItem(VIEW_KEY, viewMode);
+    applyView();
   }
 
   /* ---------- editor sheet ---------- */
@@ -314,6 +334,8 @@
     render();
     document.addEventListener('click', actions);
     $('#btn-settings').addEventListener('click', openSettings);
+    $('#btn-view').addEventListener('click', toggleView);
+    applyView();
     $('#editor-form').addEventListener('submit', saveFromEditor);
     $('#f-name').addEventListener('input', () => {
       if (!domainTouched) $('#f-domain').value = slugDomain($('#f-name').value.trim());
