@@ -160,22 +160,34 @@
   }
   // After sign-in: load this account's cards. If none locally, pull the Drive
   // backup; if there's no backup either, adopt any legacy (pre-accounts) cards.
+  // Merge two card lists by id (newest updatedAt/createdAt wins), newest first.
+  function mergeCards(a, b) {
+    const map = new Map();
+    const stamp = (c) => (c.updatedAt || c.createdAt || 0);
+    (a || []).forEach((c) => map.set(c.id, c));
+    (b || []).forEach((c) => { const ex = map.get(c.id); if (!ex || stamp(c) > stamp(ex)) map.set(c.id, c); });
+    return Array.from(map.values()).sort((x, y) => stamp(y) - stamp(x));
+  }
+  // After sign-in: load this account's existing cards. Pulls the Drive backup
+  // if there is one and merges it in, so cards that already exist come back.
   async function adoptAccountData() {
     load();
-    if (cards.length === 0) {
-      let pulled = null;
-      try { pulled = await DRIVE.restore(); } catch (e) {}
-      if (pulled && Array.isArray(pulled.cards) && pulled.cards.length) {
-        cards = pulled.cards; save();
-      } else {
-        let legacy = null;
-        try { legacy = JSON.parse(localStorage.getItem(LS_CARDS) || 'null'); } catch (e) {}
-        if (Array.isArray(legacy) && legacy.length) {
-          cards = legacy; save();
-          DRIVE.backup(payload()).catch(() => {});
-        }
-      }
+    let pulled = null;
+    try { pulled = await DRIVE.restore(); } catch (e) {}
+    const drive = (pulled && Array.isArray(pulled.cards)) ? pulled.cards : [];
+    let changed = false;
+    if (drive.length) {
+      if (cards.length === 0) { cards = drive; }
+      else { const merged = mergeCards(cards, drive); changed = merged.length !== drive.length; cards = merged; }
+      save();
+    } else if (cards.length === 0) {
+      let legacy = null;
+      try { legacy = JSON.parse(localStorage.getItem(LS_CARDS) || 'null'); } catch (e) {}
+      if (Array.isArray(legacy) && legacy.length) { cards = legacy; save(); changed = true; }
+    } else {
+      changed = true; // local cards but no Drive backup yet
     }
+    if (changed && cards.length) DRIVE.backup(payload()).catch(() => {});
   }
   function signOut() {
     DRIVE.disconnect();
