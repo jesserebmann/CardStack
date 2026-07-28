@@ -60,6 +60,7 @@
       <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
     </button>
     <div class="detail-inner">
+      <div id="detail-logo" class="detail-logo"></div>
       <h2 id="detail-name" class="detail-name"></h2>
       <div id="barcode-panel" class="barcode-panel">
         <div id="barcode-holder"></div>
@@ -89,6 +90,15 @@
         <span class="field-label">Store name</span>
         <input id="f-name" type="text" required placeholder="e.g. Delhaize, IKEA Family" autocomplete="off" />
       </label>
+
+      <div class="field">
+        <span class="field-label">Website (for the logo)</span>
+        <div class="number-row">
+          <input id="f-domain" type="text" placeholder="e.g. ikea.com" autocomplete="off" inputmode="url" />
+          <span id="logo-preview" class="logo-preview" aria-hidden="true"></span>
+        </div>
+        <span class="field-hint field-hint-muted">Leave empty for no logo. We guess the domain from the name — edit it if it's wrong (e.g. ah.nl).</span>
+      </div>
 
       <div class="field">
         <span class="field-label">Card number</span>

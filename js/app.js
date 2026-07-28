@@ -10,6 +10,7 @@
   let currentId = null;      // card shown in detail
   let draftColor = SWATCHES[0];
   let wakeLock = null;
+  let domainTouched = false;
 
   /* ---------- storage ---------- */
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'c' + Date.now() + Math.random().toString(16).slice(2));
@@ -57,7 +58,7 @@
       btn.setAttribute('aria-label', 'Open ' + c.name);
       const mini = miniBars();
       btn.innerHTML =
-        '<div class="c-name">' + escapeHtml(c.name) + '</div>' +
+        '<div class="c-head">' + logoSpan(c.domain) + '<span class="c-name">' + escapeHtml(c.name) + '</span></div>' +
         '<div class="c-num">' + escapeHtml(formatNumber(c.number)) + '</div>' +
         mini;
       grid.appendChild(btn);
@@ -71,6 +72,20 @@
   }
   function formatNumber(n) { return n.length > 20 ? n.slice(0, 20) + '\u2026' : n; }
   function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (m) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+
+  /* ---------- company logo (favicon by domain) ---------- */
+  function slugDomain(name) {
+    const s = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+    return s ? s + '.com' : '';
+  }
+  function iconUrl(domain) {
+    return domain ? 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(domain) + '&sz=128' : '';
+  }
+  function logoSpan(domain) {
+    return domain
+      ? '<span class="c-logo"><img src="' + iconUrl(domain) + '" alt="" loading="lazy" onerror="this.parentNode.style.display=\'none\'"></span>'
+      : '';
+  }
 
   /* ---------- editor sheet ---------- */
   function buildSwatches() {
@@ -92,6 +107,8 @@
     $('#f-name').value = card ? card.name : '';
     $('#f-number').value = card ? card.number : '';
     $('#f-format').value = card ? card.format : 'CODE128';
+    $('#f-domain').value = card ? (card.domain || '') : '';
+    domainTouched = !!(card && card.domain);
     draftColor = card ? card.color : SWATCHES[Math.floor(Math.random() * SWATCHES.length)];
     $('#format-warn').hidden = true;
     buildSwatches();
@@ -102,16 +119,20 @@
   function updatePreview() {
     const name = $('#f-name').value.trim() || 'Store name';
     const num = $('#f-number').value.trim();
+    const domain = $('#f-domain').value.trim();
     const wrap = $('#preview-wrap'), el = $('#card-preview');
     wrap.hidden = !num && !$('#f-name').value.trim();
     el.style.background = draftColor; el.style.color = textOn(draftColor);
-    el.innerHTML = '<div class="c-name">' + escapeHtml(name) + '</div><div class="c-num">' + escapeHtml(num || '\u2014') + '</div>' + miniBars();
+    el.innerHTML = '<div class="c-head">' + logoSpan(domain) + '<span class="c-name">' + escapeHtml(name) + '</span></div>' +
+      '<div class="c-num">' + escapeHtml(num || '\u2014') + '</div>' + miniBars();
+    $('#logo-preview').innerHTML = domain ? '<img src="' + iconUrl(domain) + '" alt="" onerror="this.style.display=\'none\'">' : '';
   }
 
   function saveFromEditor(e) {
     e.preventDefault();
     const name = $('#f-name').value.trim();
     const number = $('#f-number').value.trim();
+    const domain = $('#f-domain').value.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
     let format = $('#f-format').value;
     if (!name || !number) { toast('Add a name and a number.'); return; }
 
@@ -123,9 +144,9 @@
 
     if (editingId) {
       const c = byId(editingId);
-      Object.assign(c, { name, number, format, color: draftColor, updatedAt: Date.now() });
+      Object.assign(c, { name, number, format, color: draftColor, domain, updatedAt: Date.now() });
     } else {
-      cards.unshift({ id: uid(), name, number, format, color: draftColor, createdAt: Date.now(), updatedAt: Date.now() });
+      cards.unshift({ id: uid(), name, number, format, color: draftColor, domain, createdAt: Date.now(), updatedAt: Date.now() });
     }
     save(); render($('#search').value); closeSheet('#editor');
     toast(editingId ? 'Card updated.' : 'Card added.');
@@ -141,6 +162,7 @@
     d.style.setProperty('--card-bg', c.color);
     $('#detail-name').textContent = c.name;
     $('#detail-name').style.color = textOn(c.color) === '#1a1a1a' ? '#1a1a1a' : '#fff';
+    $('#detail-logo').innerHTML = c.domain ? '<img src="' + iconUrl(c.domain) + '" alt="" onerror="this.parentNode.style.display=\'none\'">' : '';
     $('#detail-number').textContent = spaceOut(c.number);
     B.render($('#barcode-holder'), c.number, c.format, {});
     d.classList.add('is-active'); d.setAttribute('aria-hidden', 'false');
@@ -293,9 +315,13 @@
     document.addEventListener('click', actions);
     $('#btn-settings').addEventListener('click', openSettings);
     $('#editor-form').addEventListener('submit', saveFromEditor);
-    $('#f-name').addEventListener('input', updatePreview);
+    $('#f-name').addEventListener('input', () => {
+      if (!domainTouched) $('#f-domain').value = slugDomain($('#f-name').value.trim());
+      updatePreview();
+    });
     $('#f-number').addEventListener('input', updatePreview);
     $('#f-format').addEventListener('change', updatePreview);
+    $('#f-domain').addEventListener('input', () => { domainTouched = true; updatePreview(); });
     $('#import-input').addEventListener('change', onImport);
     $('#search').addEventListener('input', (e) => render(e.target.value));
     $('#card-grid').addEventListener('click', (e) => {

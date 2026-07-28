@@ -231,4 +231,16 @@ body{
   transition:opacity .2s,transform .2s;max-width:88vw;text-align:center;box-shadow:0 12px 30px -10px rgba(0,0,0,.6);}
 .toast.show{opacity:1;transform:translate(-50%,0);}
 
+/* ---------- company logos ---------- */
+.c-head{display:flex;align-items:center;gap:9px;}
+.c-logo{width:30px;height:30px;border-radius:8px;background:#fff;display:grid;place-items:center;overflow:hidden;flex:0 0 auto;box-shadow:0 2px 6px -2px rgba(0,0,0,.5);}
+.c-logo img{width:80%;height:80%;object-fit:contain;}
+.logo-preview{width:50px;height:50px;border-radius:12px;background:#fff;display:grid;place-items:center;overflow:hidden;border:1px solid var(--line);flex:0 0 auto;}
+.logo-preview:empty{display:none;}
+.logo-preview img{width:74%;height:74%;object-fit:contain;}
+.field-hint-muted{color:var(--sand);}
+.detail-logo{display:flex;justify-content:center;}
+.detail-logo:empty{display:none;}
+.detail-logo img{width:56px;height:56px;border-radius:14px;background:#fff;padding:8px;object-fit:contain;box-shadow:0 8px 20px -8px rgba(0,0,0,.5);}
+
 @media(prefers-reduced-motion:reduce){*{transition:none!important;}}
