@@ -3,7 +3,7 @@
   const B = Cardstack.barcode, SCAN = Cardstack.scanner, DRIVE = Cardstack.drive;
 
   const LS_CARDS = 'cardstack.cards.v1';
-  const SWATCHES = ['#2B6CB0','#1E88A8','#2C7A7B','#00838F','#2F855A','#3AA76D','#6B46C1','#8E44AD','#5C6BC0','#B83280','#D64592','#C53030','#C05621','#E0663A','#D69E2E','#7A4E2D','#4A5568','#455A64','#546E7A','#1A202C'];
+  const SWATCHES = ['#2B6CB0','#1E88A8','#2C7A7B','#00838F','#2F855A','#3AA76D','#6B46C1','#8E44AD','#5C6BC0','#B83280','#D64592','#C53030','#C05621','#E0663A','#D69E2E','#7A4E2D','#4A5568','#455A64','#546E7A','#1A202C','#FFFFFF','#EDE6D8','#DCE6EF','#D7E8DE','#F3E1C6','#F3D9DE','#E4DAF0'];
   const VIEW_KEY = 'cardstack.view';
   const GRID_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
   const LIST_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>';
@@ -107,6 +107,23 @@
     applyView();
   }
 
+  /* ---------- overlay / hardware back button ---------- */
+  let pendingAfterPop = null;
+  function pushOverlay() { history.pushState({ cs: true }, ''); }
+  function closeTopOverlayDom() {
+    if ($('#scanner').classList.contains('is-active')) { closeScanner(); return true; }
+    if ($('#editor').classList.contains('is-open')) { closeSheet('#editor'); editingId = null; return true; }
+    if ($('#settings').classList.contains('is-open')) { closeSheet('#settings'); return true; }
+    if ($('#detail').classList.contains('is-active')) { closeDetail(); return true; }
+    return false;
+  }
+  function anyOverlayOpen() {
+    return $('#scanner').classList.contains('is-active')
+      || $('#editor').classList.contains('is-open')
+      || $('#settings').classList.contains('is-open')
+      || $('#detail').classList.contains('is-active');
+  }
+
   /* ---------- editor sheet ---------- */
   function buildSwatches() {
     const wrap = $('#swatches'); wrap.innerHTML = '';
@@ -168,7 +185,7 @@
     } else {
       cards.unshift({ id: uid(), name, number, format, color: draftColor, domain, createdAt: Date.now(), updatedAt: Date.now() });
     }
-    save(); render($('#search').value); closeSheet('#editor');
+    save(); render($('#search').value); history.back();
     toast(editingId ? 'Card updated.' : 'Card added.');
     editingId = null;
     maybeAutoBackup();
@@ -181,12 +198,14 @@
     const d = $('#detail');
     d.style.setProperty('--card-bg', c.color);
     $('#detail-name').textContent = c.name;
-    $('#detail-name').style.color = textOn(c.color) === '#1a1a1a' ? '#1a1a1a' : '#fff';
+    $('#detail-name').style.color = '';
+    d.style.setProperty('--on-card', textOn(c.color));
     $('#detail-logo').innerHTML = c.domain ? '<img src="' + iconUrl(c.domain) + '" alt="" onerror="this.parentNode.style.display=\'none\'">' : '';
     $('#detail-number').textContent = spaceOut(c.number);
     B.render($('#barcode-holder'), c.number, c.format, {});
     d.classList.add('is-active'); d.setAttribute('aria-hidden', 'false');
     requestWakeLock();
+    pushOverlay();
   }
   function spaceOut(n) { return n.length > 6 && /^\d+$/.test(n) ? n.replace(/(.{4})/g, '$1 ').trim() : n; }
   function closeDetail() {
@@ -205,11 +224,12 @@
   function openScanner() {
     const s = $('#scanner'); s.classList.add('is-active'); s.setAttribute('aria-hidden', 'false');
     $('#scanner-msg').textContent = 'Line the barcode up inside the frame.';
+    pushOverlay();
     SCAN.start('reader',
       (text, fmt) => {
         $('#f-number').value = text;
         if (fmt) $('#f-format').value = fmt;
-        closeScanner(); updatePreview();
+        history.back(); updatePreview();
         toast('Scanned. Check the number looks right.');
       },
       (err) => { $('#scanner-msg').textContent = err; }
@@ -225,6 +245,7 @@
     $('#sheet-backdrop').hidden = false;
     const el = $(sel); el.setAttribute('aria-hidden', 'false');
     requestAnimationFrame(() => el.classList.add('is-open'));
+    pushOverlay();
   }
   function closeSheet(sel) {
     const el = $(sel); el.classList.remove('is-open'); el.setAttribute('aria-hidden', 'true');
@@ -308,16 +329,16 @@
     const a = el.dataset.action;
     const map = {
       'add': () => openEditor(null),
-      'close-editor': () => { closeSheet('#editor'); editingId = null; },
+      'close-editor': () => history.back(),
       'scan': () => openScanner(),
-      'close-scanner': () => closeScanner(),
-      'close-detail': () => closeDetail(),
-      'edit-current': () => { const c = byId(currentId); closeDetail(); openEditor(c); },
+      'close-scanner': () => history.back(),
+      'close-detail': () => history.back(),
+      'edit-current': () => { const c = byId(currentId); pendingAfterPop = () => openEditor(c); history.back(); },
       'delete-current': () => {
         if (!confirm('Delete this card?')) return;
-        cards = cards.filter((c) => c.id !== currentId); save(); closeDetail(); render($('#search').value); toast('Card deleted.'); maybeAutoBackup();
+        cards = cards.filter((c) => c.id !== currentId); save(); render($('#search').value); toast('Card deleted.'); maybeAutoBackup(); history.back();
       },
-      'close-settings': () => closeSheet('#settings'),
+      'close-settings': () => history.back(),
       'drive-connect': driveConnect,
       'drive-backup': driveBackup,
       'drive-restore': driveRestore,
@@ -349,11 +370,13 @@
     $('#card-grid').addEventListener('click', (e) => {
       const card = e.target.closest('.card'); if (card) openDetail(card.dataset.id);
     });
-    $('#sheet-backdrop').addEventListener('click', () => {
-      closeSheet('#editor'); closeSheet('#settings'); editingId = null;
-    });
+    $('#sheet-backdrop').addEventListener('click', () => { if (anyOverlayOpen()) history.back(); });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { closeDetail(); closeSheet('#editor'); closeSheet('#settings'); if (SCAN.isRunning()) closeScanner(); }
+      if (e.key === 'Escape' && anyOverlayOpen()) history.back();
+    });
+    window.addEventListener('popstate', () => {
+      closeTopOverlayDom();
+      if (pendingAfterPop) { const fn = pendingAfterPop; pendingAfterPop = null; fn(); }
     });
   }
 

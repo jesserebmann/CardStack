@@ -135,20 +135,20 @@ body{
 .detail.is-active{display:flex;flex-direction:column;}
 .detail-close{position:absolute;top:calc(var(--safe-t) + 12px);right:16px;z-index:2;
   width:44px;height:44px;border-radius:12px;border:none;cursor:pointer;
-  background:rgba(0,0,0,.22);color:#fff;display:grid;place-items:center;}
+  background:rgba(0,0,0,.22);color:var(--on-card,#fff);display:grid;place-items:center;}
 .detail-inner{margin:auto;width:100%;max-width:480px;display:flex;flex-direction:column;align-items:center;gap:22px;}
-.detail-name{font-family:var(--font-display);font-weight:800;font-size:30px;color:#fff;text-align:center;margin:0;
-  text-shadow:0 1px 12px rgba(0,0,0,.25);letter-spacing:-.02em;}
+.detail-name{font-family:var(--font-display);font-weight:800;font-size:30px;color:var(--on-card,#fff);text-align:center;margin:0;
+  text-shadow:0 1px 12px rgba(0,0,0,.18);letter-spacing:-.02em;}
 .barcode-panel{background:#fff;border-radius:20px;padding:26px 22px 18px;width:100%;
   box-shadow:0 24px 60px -20px rgba(0,0,0,.55);display:flex;flex-direction:column;align-items:center;gap:14px;}
 #barcode-holder{width:100%;display:flex;justify-content:center;}
 #barcode-holder svg,#barcode-holder canvas,#barcode-holder img{max-width:100%;height:auto;}
 .detail-number{font-family:var(--font-mono);font-weight:700;font-size:17px;letter-spacing:.14em;color:#1a1a1a;word-break:break-all;text-align:center;}
-.present-hint{color:rgba(255,255,255,.85);font-size:13.5px;text-align:center;margin:0;max-width:300px;line-height:1.5;}
+.present-hint{color:var(--on-card,#fff);opacity:.82;font-size:13.5px;text-align:center;margin:0;max-width:300px;line-height:1.5;}
 .detail-actions{display:flex;gap:10px;margin-top:4px;}
-.pill{height:42px;padding:0 22px;border-radius:999px;border:1px solid rgba(255,255,255,.35);
-  background:rgba(0,0,0,.14);color:#fff;font-family:var(--font-body);font-weight:500;font-size:14.5px;cursor:pointer;}
-.pill-danger{border-color:rgba(255,255,255,.25);}
+.pill{height:42px;padding:0 22px;border-radius:999px;border:1px solid rgba(128,128,128,.4);
+  background:rgba(127,127,127,.16);color:var(--on-card,#fff);font-family:var(--font-body);font-weight:500;font-size:14.5px;cursor:pointer;}
+.pill-danger{border-color:rgba(196,100,75,.6);}
 .pill:active{transform:translateY(1px);}
 
 /* ---------- sheets ---------- */
