@@ -317,7 +317,7 @@
   }
 
   /* ---------- settings + drive ---------- */
-  function openSettings() { refreshDriveUI(); $('#f-clientid').value = DRIVE.clientId(); openSheet('#settings'); render(); }
+  function openSettings() { refreshDriveUI(); openSheet('#settings'); render(); }
   function refreshDriveUI() {
     const status = $('#drive-status');
     if (account) {
@@ -402,7 +402,6 @@
       'sign-out': signOut,
       'drive-backup': driveBackup,
       'drive-restore': driveRestore,
-      'save-clientid': () => { DRIVE.setClientId($('#f-clientid').value); refreshDriveUI(); toast('Client ID saved.'); },
       'export-file': exportFile,
       'import-file': importFile,
     };
