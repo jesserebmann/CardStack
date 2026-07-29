@@ -9,6 +9,7 @@
   function cardsKey() { return account ? 'cardstack.cards.' + account.sub : LS_CARDS; }
   const SWATCHES = ['#2B6CB0','#1E88A8','#2C7A7B','#00838F','#2F855A','#3AA76D','#6B46C1','#8E44AD','#5C6BC0','#B83280','#D64592','#C53030','#C05621','#E0663A','#D69E2E','#7A4E2D','#4A5568','#455A64','#546E7A','#1A202C','#FFFFFF','#EDE6D8','#DCE6EF','#D7E8DE','#F3E1C6','#F3D9DE','#E4DAF0'];
   const VIEW_KEY = 'cardstack.view';
+  const APP_VERSION = '1.0 (build 15)';
   const GRID_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
   const LIST_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>';
 
@@ -271,12 +272,16 @@
     $('#f-format').value = card ? card.format : 'CODE128';
     $('#f-domain').value = card ? (card.domain || '') : '';
     domainTouched = !!(card && card.domain);
+    if (!$('#f-domain').value && $('#f-name').value.trim()) {
+      $('#f-domain').value = slugDomain($('#f-name').value.trim());
+      domainTouched = false;
+    }
     draftColor = card ? card.color : SWATCHES[Math.floor(Math.random() * SWATCHES.length)];
     $('#format-warn').hidden = true;
     buildSwatches();
     updatePreview();
     openSheet('#editor');
-    setTimeout(() => $('#f-name').focus(), 300);
+    if (!card) setTimeout(() => $('#f-name').focus(), 300);
   }
   function updatePreview() {
     const name = $('#f-name').value.trim() || 'Store name';
@@ -496,6 +501,7 @@
     initSortable();
     updateSortUI();
     refreshSortable();
+    const av = $('#app-version'); if (av) av.textContent = APP_VERSION;
     $('#card-grid').addEventListener('click', (e) => {
       const card = e.target.closest('.card'); if (card) openDetail(card.dataset.id);
     });
