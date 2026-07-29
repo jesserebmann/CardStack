@@ -128,7 +128,9 @@
   function initSortable() {
     if (sortable || !window.Sortable) return;
     sortable = new Sortable($('#card-grid'), {
-      animation: 150,
+      animation: 200,
+      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+      swapThreshold: 0.65,
       delay: 200,
       delayOnTouchOnly: true,
       touchStartThreshold: 6,

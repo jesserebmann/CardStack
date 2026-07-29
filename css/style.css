@@ -275,8 +275,8 @@ body{
 .switch:checked{background:linear-gradient(135deg,var(--brass-hi),var(--brass));border-color:var(--brass);}
 .switch:checked::after{transform:translateX(18px);background:#221806;}
 .card.drag-on{cursor:grab;}
-.sortable-ghost{opacity:.35;}
+.sortable-ghost{opacity:.35;outline:2px dashed var(--brass);outline-offset:-2px;}
 .card.sortable-chosen{transform:none;box-shadow:0 16px 36px -10px rgba(0,0,0,.7);}
-.sortable-drag{opacity:1;}
+.sortable-drag{opacity:1;pointer-events:none;}
 
 @media(prefers-reduced-motion:reduce){*{transition:none!important;}}
