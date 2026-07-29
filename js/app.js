@@ -47,7 +47,9 @@
   function render(filter) {
     const grid = $('#card-grid'), empty = $('#empty');
     const q = (filter || '').trim().toLowerCase();
-    const list = q ? cards.filter((c) => c.name.toLowerCase().includes(q) || c.number.includes(q)) : cards;
+    const recency = (c) => c.lastUsed || c.createdAt || 0;
+    const list = (q ? cards.filter((c) => c.name.toLowerCase().includes(q) || c.number.includes(q)) : cards.slice())
+      .sort((a, b) => recency(b) - recency(a));
 
     grid.innerHTML = '';
     empty.hidden = cards.length !== 0;
@@ -268,6 +270,7 @@
   async function openDetail(id) {
     const c = byId(id); if (!c) return;
     currentId = id;
+    c.lastUsed = Date.now(); save(); render($('#search').value);
     const d = $('#detail');
     d.style.setProperty('--card-bg', c.color);
     $('#detail-name').textContent = c.name;

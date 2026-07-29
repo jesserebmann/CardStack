@@ -1,5 +1,5 @@
 /* Cardstack service worker — precache the app shell so barcodes work offline. */
-const CACHE = 'cardstack-v7';
+const CACHE = 'cardstack-v8';
 const ASSETS = [
   './',
   './index.html',
