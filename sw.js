@@ -1,5 +1,5 @@
 /* Cardstack service worker — precache the app shell so barcodes work offline. */
-const CACHE = 'cardstack-v8';
+const CACHE = 'cardstack-v9';
 const ASSETS = [
   './',
   './index.html',
@@ -11,6 +11,7 @@ const ASSETS = [
   './lib/JsBarcode.all.min.js',
   './lib/qrcode-generator.js',
   './lib/html5-qrcode.min.js',
+  './lib/Sortable.min.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

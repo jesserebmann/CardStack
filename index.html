@@ -192,6 +192,15 @@
       </div>
 
       <div class="group">
+        <h3 class="group-title">Sorting</h3>
+        <label class="switch-row">
+          <span>Auto-sort by most recently used</span>
+          <input type="checkbox" id="f-autosort" class="switch" checked />
+        </label>
+        <p class="group-note">Turn off to arrange cards yourself — press and hold a card, then drag it.</p>
+      </div>
+
+      <div class="group">
         <h3 class="group-title">File backup</h3>
         <p class="group-note">Download a backup file you can drop into Drive, or restore from one. No setup needed.</p>
         <div class="btn-row">
@@ -214,6 +223,7 @@
   <script src="lib/JsBarcode.all.min.js"></script>
   <script src="lib/qrcode-generator.js"></script>
   <script src="lib/html5-qrcode.min.js"></script>
+  <script src="lib/Sortable.min.js"></script>
 
   <!-- google identity services (only used if you connect Drive) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>

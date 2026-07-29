@@ -19,6 +19,8 @@
   let wakeLock = null;
   let domainTouched = false;
   let viewMode = localStorage.getItem(VIEW_KEY) || 'list';
+  let autoSort = localStorage.getItem('cardstack.autosort') !== 'off';
+  let sortable = null;
 
   /* ---------- storage ---------- */
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'c' + Date.now() + Math.random().toString(16).slice(2));
@@ -48,8 +50,8 @@
     const grid = $('#card-grid'), empty = $('#empty');
     const q = (filter || '').trim().toLowerCase();
     const recency = (c) => c.lastUsed || c.createdAt || 0;
-    const list = (q ? cards.filter((c) => c.name.toLowerCase().includes(q) || c.number.includes(q)) : cards.slice())
-      .sort((a, b) => recency(b) - recency(a));
+    let list = q ? cards.filter((c) => c.name.toLowerCase().includes(q) || c.number.includes(q)) : cards.slice();
+    if (autoSort) list = list.sort((a, b) => recency(b) - recency(a));
 
     grid.innerHTML = '';
     empty.hidden = cards.length !== 0;
@@ -62,6 +64,7 @@
     list.forEach((c) => {
       const btn = document.createElement('button');
       btn.className = 'card';
+      if (dragAllowed()) btn.classList.add('drag-on');
       btn.style.background = c.color;
       btn.style.color = textOn(c.color);
       btn.dataset.id = c.id;
@@ -111,6 +114,44 @@
     viewMode = viewMode === 'grid' ? 'list' : 'grid';
     localStorage.setItem(VIEW_KEY, viewMode);
     applyView();
+  }
+
+  /* ---------- manual ordering (drag) + auto-sort toggle ---------- */
+  function searchActive() { return ($('#search').value || '').trim() !== ''; }
+  function dragAllowed() { return !autoSort && !searchActive(); }
+  function refreshSortable() { if (sortable) sortable.option('disabled', !dragAllowed()); }
+  function initSortable() {
+    if (sortable || !window.Sortable) return;
+    sortable = new Sortable($('#card-grid'), {
+      animation: 150,
+      delay: 200,
+      delayOnTouchOnly: true,
+      touchStartThreshold: 6,
+      disabled: !dragAllowed(),
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      dragClass: 'sortable-drag',
+      onEnd: () => {
+        const ids = Array.from($('#card-grid').querySelectorAll('.card')).map((el) => el.dataset.id);
+        const order = new Map(ids.map((id, i) => [id, i]));
+        cards.sort((a, b) => (order.has(a.id) ? order.get(a.id) : 1e9) - (order.has(b.id) ? order.get(b.id) : 1e9));
+        save();
+        maybeAutoBackup();
+      },
+    });
+  }
+  function updateSortUI() { const cb = $('#f-autosort'); if (cb) cb.checked = autoSort; }
+  function setAutoSort(on) {
+    if (!on && autoSort) {
+      const recency = (c) => c.lastUsed || c.createdAt || 0;
+      cards.sort((a, b) => recency(b) - recency(a));
+      save();
+    }
+    autoSort = on;
+    localStorage.setItem('cardstack.autosort', on ? 'on' : 'off');
+    updateSortUI();
+    render($('#search').value);
+    refreshSortable();
   }
 
   /* ---------- overlay / hardware back button ---------- */
@@ -332,7 +373,7 @@
   }
 
   /* ---------- settings + drive ---------- */
-  function openSettings() { refreshDriveUI(); openSheet('#settings'); render(); }
+  function openSettings() { refreshDriveUI(); updateSortUI(); openSheet('#settings'); render(); }
   function refreshDriveUI() {
     const status = $('#drive-status');
     if (account) {
@@ -441,7 +482,11 @@
     $('#f-format').addEventListener('change', updatePreview);
     $('#f-domain').addEventListener('input', () => { domainTouched = true; updatePreview(); });
     $('#import-input').addEventListener('change', onImport);
-    $('#search').addEventListener('input', (e) => render(e.target.value));
+    $('#search').addEventListener('input', (e) => { render(e.target.value); refreshSortable(); });
+    $('#f-autosort').addEventListener('change', (e) => setAutoSort(e.target.checked));
+    initSortable();
+    updateSortUI();
+    refreshSortable();
     $('#card-grid').addEventListener('click', (e) => {
       const card = e.target.closest('.card'); if (card) openDetail(card.dataset.id);
     });
