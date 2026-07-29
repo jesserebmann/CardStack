@@ -21,11 +21,10 @@ Cardstack.scanner = (function () {
 
     const config = {
       fps: 15,
-      // Square scan window: QR codes are square, so a square box detects them
-      // far more easily than a wide/short rectangle. 1D barcodes fit too.
+      // Single rectangular scan window (the library draws this box itself).
       qrbox: (vw, vh) => {
-        const s = Math.min(Math.floor(Math.min(vw, vh) * 0.75), 300);
-        return { width: s, height: s };
+        const w = Math.min(Math.floor(Math.min(vw, vh) * 0.82), 300);
+        return { width: w, height: Math.round(w * 0.66) };
       },
     };
 
