@@ -64,6 +64,7 @@
     list.forEach((c) => {
       const btn = document.createElement('button');
       btn.className = 'card';
+      if (viewMode === 'grid') btn.classList.add('tile');
       if (dragAllowed()) btn.classList.add('drag-on');
       btn.style.background = c.color;
       btn.style.color = textOn(c.color);
@@ -103,11 +104,15 @@
   /* ---------- list / grid view ---------- */
   function applyView() {
     const grid = $('#card-grid');
-    if (grid) grid.classList.toggle('grid', viewMode === 'grid');
+    const isGrid = viewMode === 'grid';
+    if (grid) {
+      grid.classList.toggle('grid', isGrid);
+      grid.querySelectorAll('.card').forEach((c) => c.classList.toggle('tile', isGrid));
+    }
     const btn = $('#btn-view');
     if (btn) {
-      btn.innerHTML = viewMode === 'grid' ? LIST_ICON : GRID_ICON;
-      btn.setAttribute('aria-label', viewMode === 'grid' ? 'Switch to list view' : 'Switch to grid view');
+      btn.innerHTML = isGrid ? LIST_ICON : GRID_ICON;
+      btn.setAttribute('aria-label', isGrid ? 'Switch to list view' : 'Switch to grid view');
     }
   }
   function toggleView() {
@@ -128,13 +133,11 @@
       delayOnTouchOnly: true,
       touchStartThreshold: 6,
       forceFallback: true,
-      fallbackOnBody: true,
       fallbackTolerance: 4,
       disabled: !dragAllowed(),
       ghostClass: 'sortable-ghost',
       chosenClass: 'sortable-chosen',
       dragClass: 'sortable-drag',
-      fallbackClass: 'sortable-fallback',
       onEnd: () => {
         const ids = Array.from($('#card-grid').querySelectorAll('.card')).map((el) => el.dataset.id);
         const order = new Map(ids.map((id, i) => [id, i]));
