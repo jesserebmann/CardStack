@@ -127,10 +127,14 @@
       delay: 200,
       delayOnTouchOnly: true,
       touchStartThreshold: 6,
+      forceFallback: true,
+      fallbackOnBody: true,
+      fallbackTolerance: 4,
       disabled: !dragAllowed(),
       ghostClass: 'sortable-ghost',
       chosenClass: 'sortable-chosen',
       dragClass: 'sortable-drag',
+      fallbackClass: 'sortable-fallback',
       onEnd: () => {
         const ids = Array.from($('#card-grid').querySelectorAll('.card')).map((el) => el.dataset.id);
         const order = new Map(ids.map((id, i) => [id, i]));

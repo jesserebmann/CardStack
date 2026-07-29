@@ -275,8 +275,9 @@ body{
 .switch:checked{background:linear-gradient(135deg,var(--brass-hi),var(--brass));border-color:var(--brass);}
 .switch:checked::after{transform:translateX(18px);background:#221806;}
 .card.drag-on{cursor:grab;}
-.sortable-ghost{opacity:.35;}
-.sortable-chosen{box-shadow:0 16px 36px -10px rgba(0,0,0,.7);}
+.card.sortable-chosen{transform:none;box-shadow:0 16px 36px -10px rgba(0,0,0,.7);}
+.sortable-ghost{opacity:.4;}
 .sortable-drag{opacity:1;}
+.sortable-fallback{opacity:1 !important;pointer-events:none;z-index:250;box-shadow:0 22px 44px -12px rgba(0,0,0,.75);}
 
 @media(prefers-reduced-motion:reduce){*{transition:none!important;}}
