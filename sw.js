@@ -1,5 +1,5 @@
 /* Cardstack service worker — precache the app shell so barcodes work offline. */
-const CACHE = 'cardstack-v16';
+const CACHE = 'cardstack-v17';
 const ASSETS = [
   './',
   './index.html',
@@ -30,22 +30,19 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
-  // Never cache Google auth/API or cross-origin font calls — always go to network.
-  if (url.hostname.endsWith('googleapis.com') || url.hostname.endsWith('google.com') || url.hostname.endsWith('gstatic.com')) {
-    return; // default network handling
-  }
+  // Never touch Google auth/API or cross-origin (fonts) — let them go to network.
+  if (url.hostname.endsWith('googleapis.com') || url.hostname.endsWith('google.com') || url.hostname.endsWith('gstatic.com')) return;
   if (e.request.method !== 'GET') return;
-  // Cache-first for same-origin app shell; fall back to network, then cache runtime.
+  if (url.origin !== location.origin) return;
+  // Network-first for the app shell: always get the freshest code when online,
+  // fall back to cache when offline. This prevents stale cached versions.
   e.respondWith(
-    caches.match(e.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(e.request).then((res) => {
-        if (res && res.status === 200 && url.origin === location.origin) {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(e.request, copy));
-        }
-        return res;
-      }).catch(() => cached);
-    })
+    fetch(e.request).then((res) => {
+      if (res && res.status === 200) {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(e.request, copy));
+      }
+      return res;
+    }).catch(() => caches.match(e.request).then((cached) => cached || caches.match('./index.html')))
   );
 });
