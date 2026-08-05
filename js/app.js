@@ -9,7 +9,7 @@
   function cardsKey() { return account ? 'cardstack.cards.' + account.sub : LS_CARDS; }
   const SWATCHES = ['#2B6CB0','#1E88A8','#2C7A7B','#00838F','#2F855A','#3AA76D','#6B46C1','#8E44AD','#5C6BC0','#B83280','#D64592','#C53030','#C05621','#E0663A','#D69E2E','#7A4E2D','#4A5568','#455A64','#546E7A','#1A202C','#FFFFFF','#EDE6D8','#DCE6EF','#D7E8DE','#F3E1C6','#F3D9DE','#E4DAF0'];
   const VIEW_KEY = 'cardstack.view';
-  const APP_VERSION = '1.0 (build 22)';
+  const APP_VERSION = '1.0 (build 23)';
   const GRID_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
   const LIST_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>';
 
@@ -19,6 +19,7 @@
   let draftColor = SWATCHES[0];
   let wakeLock = null;
   let domainTouched = false;
+  let formatTouched = false;
   let viewMode = localStorage.getItem(VIEW_KEY) || 'list';
   let autoSort = localStorage.getItem('cardstack.autosort') !== 'off';
   let sortable = null;
@@ -92,6 +93,20 @@
   function slugDomain(name) {
     const s = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
     return s ? s + '.com' : '';
+  }
+  // Guess the barcode symbology from the number's structure.
+  function guessFormat(value) {
+    const v = (value || '').trim();
+    if (!v) return 'CODE128';
+    if (/^https?:\/\//i.test(v)) return 'QR';
+    if (/^\d+$/.test(v)) {
+      if (v.length === 13) return 'EAN13';
+      if (v.length === 12) return 'UPC';
+      if (v.length === 8) return 'EAN8';
+      if (v.length === 14) return 'ITF';
+      return 'CODE128';
+    }
+    return 'CODE128';
   }
   function iconUrl(domain) {
     return domain ? 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(domain) + '&sz=128' : '';
@@ -271,6 +286,7 @@
     $('#f-name').value = card ? card.name : '';
     $('#f-number').value = card ? card.number : '';
     $('#f-format').value = card ? card.format : 'CODE128';
+    formatTouched = !!card;
     $('#f-domain').value = card ? (card.domain || '') : '';
     domainTouched = !!(card && card.domain);
     if (!$('#f-domain').value && $('#f-name').value.trim()) {
@@ -360,7 +376,7 @@
     SCAN.start('reader',
       (text, fmt) => {
         $('#f-number').value = text;
-        if (fmt) $('#f-format').value = fmt;
+        if (fmt) { $('#f-format').value = fmt; formatTouched = true; }
         history.back(); updatePreview();
         toast('Scanned. Check the number looks right.');
       },
@@ -493,8 +509,11 @@
       if (!domainTouched) $('#f-domain').value = slugDomain($('#f-name').value.trim());
       updatePreview();
     });
-    $('#f-number').addEventListener('input', updatePreview);
-    $('#f-format').addEventListener('change', updatePreview);
+    $('#f-number').addEventListener('input', () => {
+      if (!formatTouched) $('#f-format').value = guessFormat($('#f-number').value);
+      updatePreview();
+    });
+    $('#f-format').addEventListener('change', () => { formatTouched = true; updatePreview(); });
     $('#f-domain').addEventListener('input', () => { domainTouched = true; updatePreview(); });
     $('#import-input').addEventListener('change', onImport);
     $('#search').addEventListener('input', (e) => { render(e.target.value); refreshSortable(); });
