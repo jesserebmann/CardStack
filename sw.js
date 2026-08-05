@@ -1,5 +1,5 @@
 /* Cardstack service worker — precache the app shell so barcodes work offline. */
-const CACHE = 'cardstack-v21';
+const CACHE = 'cardstack-v22';
 const ASSETS = [
   './',
   './index.html',
@@ -34,15 +34,19 @@ self.addEventListener('fetch', (e) => {
   if (url.hostname.endsWith('googleapis.com') || url.hostname.endsWith('google.com') || url.hostname.endsWith('gstatic.com')) return;
   if (e.request.method !== 'GET') return;
   if (url.origin !== location.origin) return;
-  // Network-first for the app shell: always get the freshest code when online,
-  // fall back to cache when offline. This prevents stale cached versions.
+  // Stale-while-revalidate: serve the locally cached version INSTANTLY (so the
+  // app opens with no internet at all), and refresh the cache from the network
+  // in the background when a connection is available — for the next launch.
   e.respondWith(
-    fetch(e.request).then((res) => {
-      if (res && res.status === 200) {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(e.request, copy));
-      }
-      return res;
-    }).catch(() => caches.match(e.request).then((cached) => cached || caches.match('./index.html')))
+    caches.match(e.request).then((cached) => {
+      const fromNet = fetch(e.request).then((res) => {
+        if (res && res.status === 200) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, copy));
+        }
+        return res;
+      }).catch(() => null);
+      return cached || fromNet.then((r) => r || caches.match('./index.html'));
+    })
   );
 });
